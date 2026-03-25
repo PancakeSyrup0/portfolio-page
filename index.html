@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Adam | Interactive Portfolio</title>
     <style>
-        /* Base Styles */
-        body { margin: 0; overflow: hidden; background-color: #111; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        /* Base Styles - Changed to pure black (#000) */
+        body { margin: 0; overflow: hidden; background-color: #000; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         
         /* 1. Intro Screen & Typing Animation */
         #intro-screen {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #111;
+            background-color: #000; /* Changed to pure black */
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -21,7 +21,6 @@
             transition: opacity 1s ease-in-out, visibility 1s;
         }
 
-        /* Container for typing animation */
         .typing-container {
             display: flex;
             flex-direction: column;
@@ -32,51 +31,65 @@
             font-size: 3rem;
             margin-bottom: 10px;
             letter-spacing: 2px;
-            overflow: hidden; /* Ensures the content is not revealed until the animation */
-            border-right: .15em solid orange; /* The typwriter cursor */
-            white-space: nowrap; /* Keeps the content on a single line */
-            margin: 0 auto; /* Gives that scrolling effect as the typing happens */
-            
-            /* The typing animation logic */
-            animation: 
-                typing 1.5s steps(15, end),
-                blink-caret .75s step-end infinite;
+            overflow: hidden;
+            border-right: .15em solid white; 
+            white-space: nowrap; 
+            margin: 0 auto; 
+            animation: typing 1.5s steps(15, end), blink-caret .75s step-end infinite;
         }
 
-        /* Typing effect keyframes */
         @keyframes typing {
             from { width: 0 }
             to { width: 100% }
         }
 
-        /* The typewriter cursor effect */
         @keyframes blink-caret {
             from, to { border-color: transparent }
-            50% { border-color: orange; }
+            50% { border-color: white; }
         }
 
         #intro-screen p { 
             font-size: 1.2rem; 
             color: #aaa; 
             opacity: 0;
-            animation: fadeIn 0.5s ease-in 1.5s forwards; /* Fades in after typing completes */
+            animation: fadeIn 0.5s ease-in 1.5s forwards; 
         }
 
         @keyframes fadeIn {
             to { opacity: 1; }
         }
         
-        /* Class to trigger the fade-out */
+        /* The Enter Button */
+        #enter-btn {
+            margin-top: 30px;
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            background-color: transparent;
+            color: white;
+            border: 2px solid white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            opacity: 0;
+            animation: fadeIn 0.5s ease-in 2s forwards;
+            transition: all 0.3s ease;
+        }
+
+        #enter-btn:hover {
+            background-color: white;
+            color: #000; /* Adjusted hover text to black for better contrast */
+        }
+
         .fade-out { opacity: 0; visibility: hidden; }
 
         /* Small helper text */
         #helper-text { position: absolute; bottom: 20px; width: 100%; text-align: center; pointer-events: none; opacity: 0.5; z-index: 10; }
 
-        /* 2. Modal (Pop-out) Styles - Glassmorphism look */
+        /* 2. Modal (Pop-out) Styles */
         #modal-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.7); /* Slightly darker overlay for pure black theme */
             backdrop-filter: blur(5px);
             display: flex;
             justify-content: center;
@@ -93,7 +106,7 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 15px;
             padding: 40px;
-            width: 80%;
+            width: 85%; /* Slightly wider on mobile */
             max-width: 500px;
             text-align: left;
             position: relative;
@@ -108,11 +121,11 @@
             background: none; border: none; color: white;
             font-size: 1.5rem; cursor: pointer; transition: color 0.2s;
         }
-        #close-btn:hover { color: #ff595e; }
+        #close-btn:hover { color: #888; }
         
         #modal-title { margin-top: 0; font-size: 2rem; border-bottom: 2px solid #555; padding-bottom: 10px; }
         .project-item { margin-top: 20px; }
-        .project-item h3 { margin-bottom: 5px; color: #ffca3a; }
+        .project-item h3 { margin-bottom: 5px; color: #fff; }
         .project-item p { line-height: 1.5; color: #ddd; }
     </style>
 </head>
@@ -122,17 +135,17 @@
         <div class="typing-container">
             <h1>Hi, I'm Adam.</h1>
             <p>Welcome to my interactive portfolio.</p>
+            <button id="enter-btn">Enter Portfolio</button>
         </div>
     </div>
 
-    <div id="helper-text">Drag to rotate • Click a face to explore</div>
+    <div id="helper-text">Drag to rotate • Tap or click a face to explore</div>
 
     <div id="modal-overlay">
         <div id="modal-content">
             <button id="close-btn">&times;</button>
             <h2 id="modal-title">Skill Title</h2>
-            <div id="modal-body">
-                </div>
+            <div id="modal-body"></div>
         </div>
     </div>
 
@@ -140,75 +153,109 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
     <script>
-        // --- 1. INTRO SCREEN LOGIC ---
-        // Fade out the intro screen after typing animation completes + small delay
-        window.onload = () => {
-            setTimeout(() => {
-                document.getElementById('intro-screen').classList.add('fade-out');
-            }, 3000); // 1.5s typing + 0.5s fadeIn + 1s delay
-        };
-
-        // --- 2. PORTFOLIO DATA ---
-        // Match the array order to the cube's faces: [Right, Left, Top, Bottom, Front, Back]
+        // --- 1. PORTFOLIO DATA ---
         const portfolioData = [
-            {
-                title: "App Development", // Right face
-                content: "<div class='project-item'><h3>Roomio</h3><p>Details about Roomio...</p></div>"
-            },
-            {
-                title: "Design", // Left face
-                content: "<div class='project-item'><h3>@pancakesyrup101</h3><p>Details about design work...</p></div>"
-            },
-            {
-                title: "Video Editing", // Top face
-                content: "<div class='project-item'><h3>@pancakesyrup101</h3><p>Details about video projects...</p></div>"
-            },
-            {
-                title: "Game Development", // Bottom face
-                content: "<div class='project-item'><h3>Tug of Love</h3><p>Details about Tug of Love...</p></div>"
-            },
-            {
-                title: "Full-Stack Web Dev", // Front face
-                content: "<div class='project-item'><h3>Magis FLOW</h3><p>Details about Magis FLOW...</p></div>"
-            },
-            {
-                title: "Contact Me", // Back face
-                content: "<div class='project-item'><h3>Let's Connect</h3><p>Email: adam@example.com</p></div>"
-            }
+            { title: "App Development", content: "<div class='project-item'><h3>Roomio</h3><p>Details about Roomio...</p></div>" },
+            { title: "Design", content: "<div class='project-item'><h3>@pancakesyrup101</h3><p>Details about design work...</p></div>" },
+            { title: "Video Editing", content: "<div class='project-item'><h3>@pancakesyrup101</h3><p>Details about video projects...</p></div>" },
+            { title: "Game Development", content: "<div class='project-item'><h3>Tug of Love</h3><p>Details about Tug of Love...</p></div>" },
+            { title: "Full-Stack Web Dev", content: "<div class='project-item'><h3>Magis FLOW</h3><p>Details about Magis FLOW...</p></div>" },
+            { title: "Contact Me", content: "<div class='project-item'><h3>Let's Connect</h3><p>Email: adam@example.com</p></div>" }
         ];
 
-        // --- 3. THREE.JS SETUP ---
+        // --- 2. THREE.JS SETUP ---
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); 
+        renderer.setPixelRatio(window.devicePixelRatio); 
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
         const geometry = new THREE.BoxGeometry(2, 2, 2);
 
-        // --- Image Loading Logic ---
-        const textureLoader = new THREE.TextureLoader();
+        // --- 3. VIDEO TEXTURE & FADE LOGIC ---
+        const htmlVideoElements = []; 
 
-        // This creates an array of textures. Update filenames here.
-        // Make sure these files exist in the same folder as this HTML file.
+        function createVideoMaterial(videoFilename) {
+            const video = document.createElement('video');
+            video.src = videoFilename;
+            video.loop = true;
+            video.muted = true;
+            video.setAttribute('playsinline', ''); 
+            
+            htmlVideoElements.push(video);
+
+            const videoTexture = new THREE.VideoTexture(video);
+            videoTexture.minFilter = THREE.LinearFilter;
+            videoTexture.magFilter = THREE.LinearFilter;
+
+            return new THREE.MeshBasicMaterial({ 
+                map: videoTexture,
+                transparent: true, 
+                opacity: 1.0       
+            });
+        }
+
         const materials = [
-            new THREE.MeshBasicMaterial({ map: textureLoader.load('app_dev.png') }),    // Right
-            new THREE.MeshBasicMaterial({ map: textureLoader.load('design.png') }),     // Left
-            new THREE.MeshBasicMaterial({ map: textureLoader.load('video_editing.png') }), // Top
-            new THREE.MeshBasicMaterial({ map: textureLoader.load('game_dev.png') }),   // Bottom
-            new THREE.MeshBasicMaterial({ map: textureLoader.load('web_dev.png') }),    // Front
-            new THREE.MeshBasicMaterial({ map: textureLoader.load('contact.png') })     // Back
+            createVideoMaterial('app_dev.mp4'),       
+            createVideoMaterial('design.mp4'),        
+            createVideoMaterial('video_editing.mp4'), 
+            createVideoMaterial('game_dev.mp4'),      
+            createVideoMaterial('web_dev.mp4'),       
+            createVideoMaterial('contact.mp4')        
         ];
         
         const cube = new THREE.Mesh(geometry, materials);
         scene.add(cube);
         camera.position.z = 5;
 
+        // --- 4. FLICKERING GLOW LOGIC (Spriting) ---
+        function createGlowTexture() {
+            const size = 512;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)'); 
+            gradient.addColorStop(0.3, 'rgba(255, 255, 255, 0.5)'); 
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)'); 
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const glowTexture = createGlowTexture();
+        const glowMaterial = new THREE.SpriteMaterial({ 
+            map: glowTexture, 
+            color: 0xffffff, 
+            transparent: true,
+            opacity: 0.8,
+            depthWrite: false 
+        });
+        const glowSprite = new THREE.Sprite(glowMaterial);
+        
+        glowSprite.scale.set(3.5, 3.5, 1); 
+        scene.add(glowSprite);
+
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.enableZoom = false; 
 
-        // --- 4. INTERACTION LOGIC (Raycaster & Modal) ---
+        // --- 5. INTRO SCREEN & BUTTON LOGIC ---
+        const enterBtn = document.getElementById('enter-btn');
+        const introScreen = document.getElementById('intro-screen');
+
+        enterBtn.addEventListener('click', () => {
+            htmlVideoElements.forEach(vid => vid.play());
+            introScreen.classList.add('fade-out');
+        });
+
+        // --- 6. INTERACTION LOGIC (Click vs Drag for Mobile/Desktop) ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         
@@ -226,9 +273,25 @@
             if (e.target === modalOverlay) closeModal();
         });
 
-        window.addEventListener('click', (event) => {
-            if (modalOverlay.classList.contains('active')) return;
+        // NEW: Track where the mouse/finger pressed down
+        let pointerDownPos = new THREE.Vector2();
 
+        window.addEventListener('pointerdown', (event) => {
+            pointerDownPos.x = event.clientX;
+            pointerDownPos.y = event.clientY;
+        });
+
+        // NEW: Check distance on release to determine if it was a drag or a tap
+        window.addEventListener('pointerup', (event) => {
+            if (modalOverlay.classList.contains('active') || !introScreen.classList.contains('fade-out')) return;
+
+            // Calculate how far the pointer moved
+            const distanceMoved = Math.hypot(event.clientX - pointerDownPos.x, event.clientY - pointerDownPos.y);
+
+            // If it moved more than 5 pixels, treat it as a drag and cancel the click
+            if (distanceMoved > 5) return;
+
+            // It was a clean tap/click! Proceed to open the modal.
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
@@ -240,9 +303,14 @@
                 
                 modalTitle.innerText = portfolioData[faceIndex].title;
                 modalBody.innerHTML = portfolioData[faceIndex].content;
-                
                 modalOverlay.classList.add('active');
             }
+        });
+
+        // Keep hover effects working for desktop users
+        window.addEventListener('mousemove', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
         });
 
         window.addEventListener('resize', () => {
@@ -251,13 +319,40 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // --- 5. ANIMATION LOOP ---
+        const fadeSpeed = 0.05; 
+        let currentlyHoveredFace = null;
+
+        // --- 7. ANIMATION LOOP ---
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
-            
-            cube.rotation.x += 0.002;
-            cube.rotation.y += 0.003;
+
+            glowMaterial.opacity = 0.8 + (Math.random() - 0.5) * 0.06;
+            const glowScale = 3.5 + (Math.random() - 0.5) * 0.1;
+            glowSprite.scale.set(glowScale, glowScale, 1);
+
+            // Hover effects (won't trigger on mobile, which is normal and desired)
+            if (introScreen.classList.contains('fade-out') && !modalOverlay.classList.contains('active')) {
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObject(cube);
+
+                if (intersects.length > 0) {
+                    const faceIndex = Math.floor(intersects[0].faceIndex / 2);
+                    currentlyHoveredFace = faceIndex;
+                } else {
+                    currentlyHoveredFace = null;
+                }
+            } else {
+                currentlyHoveredFace = null;
+            }
+
+            materials.forEach((material, index) => {
+                if (index === currentlyHoveredFace) {
+                    material.opacity = Math.max(0.6, material.opacity - fadeSpeed);
+                } else {
+                    material.opacity = Math.min(1.0, material.opacity + fadeSpeed);
+                }
+            });
 
             renderer.render(scene, camera);
         }
