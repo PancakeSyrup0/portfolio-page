@@ -8,7 +8,7 @@
         /* --- CUSTOM FONT SETUP --- */
         @font-face {
             font-family: 'AdamCustomFont';
-            src: url('PPFraktionMono-Regular.woff2') format('woff2'); /* CHANGE THIS LINE to your exact font file name */
+            src: url('PPFraktionMono-Regular.woff2') format('woff2'); 
             font-weight: normal;
             font-style: normal;
         }
@@ -29,17 +29,17 @@
         }
 
         body.light-mode {
-            --bg-color: #f4f4f5;
-            --text-color: #111827;
-            --btn-border: #111827;
-            --btn-hover-bg: #111827;
-            --btn-hover-text: #ffffff;
-            --glass-bg: rgba(255, 255, 255, 0.65);
-            --glass-border: rgba(0, 0, 0, 0.2);
-            --card-bg: rgba(0, 0, 0, 0.05);
-            --card-hover: rgba(0, 0, 0, 0.1);
-            --title-border: rgba(0, 0, 0, 0.3);
-            --helper-text: #555555;
+            --bg-color: #f2f0e6; 
+            --text-color: #3d3b38; 
+            --btn-border: #3d3b38;
+            --btn-hover-bg: #3d3b38;
+            --btn-hover-text: #f2f0e6;
+            --glass-bg: rgba(242, 240, 230, 0.75);
+            --glass-border: rgba(61, 59, 56, 0.15);
+            --card-bg: rgba(61, 59, 56, 0.04);
+            --card-hover: rgba(61, 59, 56, 0.08);
+            --title-border: rgba(61, 59, 56, 0.2);
+            --helper-text: #706e69;
         }
 
         /* Base Styles */
@@ -87,27 +87,26 @@
             #helper-text { bottom: 120px; }
         }
 
-        /* --- NEW FULL-PAGE GLASS SHEET --- */
+        /* --- FULL-PAGE GLASS SHEET --- */
         #glass-panel {
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100vh;
+            top: 0; left: 0; width: 100%; height: 100dvh;
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border-top: 1px solid var(--glass-border);
-            z-index: 200; /* Stays above everything, including Spotify */
-            
-            /* The sliding animation */
+            z-index: 200; 
+            pointer-events: none; 
             transform: translateY(100%); 
             transition: transform 0.6s cubic-bezier(0.25, 1, 0.3, 1), background 0.5s ease;
-            
             overflow-y: auto;
             box-sizing: border-box;
             padding: 80px 5% 60px 5%;
         }
 
         #glass-panel.active {
-            transform: translateY(0); /* Shoots up to fill the screen */
+            transform: translateY(0); 
+            pointer-events: all; 
         }
 
         #close-btn {
@@ -118,20 +117,14 @@
         }
         #close-btn:hover { transform: scale(1.2) rotate(90deg); color: #ff5555; }
 
-        /* --- GLASS PANEL CONTENT STYLING --- */
-        .glass-container {
-            max-width: 1100px; margin: 0 auto;
-        }
+        .glass-container { max-width: 1100px; margin: 0 auto; }
 
         .glass-title {
             font-size: 3.5rem; margin-top: 0; margin-bottom: 40px; text-transform: uppercase; 
             letter-spacing: 3px; border-bottom: 2px solid var(--title-border); padding-bottom: 15px;
         }
 
-        /* The Grid for Project Cards */
-        .project-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;
-        }
+        .project-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
 
         .project-card {
             background: var(--card-bg); border: 1px solid var(--glass-border);
@@ -163,7 +156,7 @@
     <div id="helper-text">Drag to rotate • Tap or click a face to explore</div>
 
     <div id="glass-panel">
-        <button id="close-btn">&times;</button>
+        <button id="close-btn">×</button>
         <div class="glass-container" id="glass-content">
             </div>
     </div>
@@ -172,7 +165,6 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
     <script>
-        // --- UPGRADED PORTFOLIO DATA WITH HTML PAGE LAYOUTS ---
         const portfolioData = [
             { 
                 content: `
@@ -262,7 +254,6 @@
             }
         ];
 
-        // --- 3D ENVIRONMENT SETUP ---
         const scene = new THREE.Scene();
         scene.fog = new THREE.FogExp2(0x000000, 0.015); 
 
@@ -276,7 +267,6 @@
         const coreVideos = ['app_dev.webm', 'design.webm', 'video_editing.webm', 'game_dev.webm', 'web_dev.webm', 'contact.webm'];
         
         let isDarkMode = true;
-        let targetInvertValue = 0.0; 
 
         function createVideoMaterial(videoFilename) {
             const video = document.createElement('video');
@@ -320,6 +310,12 @@
         const materials = coreVideos.map(vid => createVideoMaterial(vid));
         
         const cubeGroup = new THREE.Group();
+        
+        const coreGeometry = new THREE.BoxGeometry(1.98, 1.98, 1.98); 
+        const coreMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        const coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
+        cubeGroup.add(coreMesh);
+
         const planeGeometry = new THREE.PlaneGeometry(2, 2);
         const planeMeshes = [];
 
@@ -362,9 +358,11 @@
             isDarkMode = !isDarkMode;
             document.body.classList.toggle('light-mode');
             themeToggle.innerText = isDarkMode ? "☀️ Light Mode" : "🌙 Dark Mode";
-            scene.fog.color.setHex(isDarkMode ? 0x000000 : 0xf4f4f5);
-            starMaterial.color.setHex(isDarkMode ? 0xffffff : 0x000000);
-            targetInvertValue = isDarkMode ? 0.0 : 1.0;
+            
+            scene.fog.color.setHex(isDarkMode ? 0x000000 : 0xf2f0e6);
+            starMaterial.color.setHex(isDarkMode ? 0xffffff : 0x3d3b38);
+            
+            coreMaterial.color.setHex(isDarkMode ? 0x000000 : 0x3d3b38); 
         });
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -383,7 +381,6 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         
-        // --- NEW GLASS PANEL LOGIC ---
         const glassPanel = document.getElementById('glass-panel');
         const glassContent = document.getElementById('glass-content');
         const closeBtn = document.getElementById('close-btn');
@@ -391,7 +388,6 @@
         function closeGlass() { glassPanel.classList.remove('active'); }
         closeBtn.addEventListener('click', closeGlass);
         
-        // Optional: Close if clicking exactly on the glass background (not the cards)
         glassPanel.addEventListener('click', (e) => { 
             if (e.target === glassPanel || e.target.classList.contains('glass-container')) closeGlass(); 
         });
@@ -403,28 +399,21 @@
         });
 
         window.addEventListener('pointerup', (event) => {
-            // Prevent opening a new panel if the glass is already up or intro is active
             if (glassPanel.classList.contains('active') || !introScreen.classList.contains('fade-out')) return;
 
             const distanceMoved = Math.hypot(event.clientX - pointerDownPos.x, event.clientY - pointerDownPos.y);
-            if (distanceMoved > 5) return;
+            if (distanceMoved > 15) return;
 
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(cubeGroup.children);
+            const intersects = raycaster.intersectObjects(planeMeshes);
 
             if (intersects.length > 0) {
                 const faceIndex = intersects[0].object.userData.index;
-                
-                // Inject the specific HTML layout for this category
                 glassContent.innerHTML = portfolioData[faceIndex].content;
-                
-                // Shoot the glass panel up
                 glassPanel.classList.add('active');
-                
-                // Scroll the new panel back to the top just in case
                 glassPanel.scrollTop = 0; 
             }
         });
@@ -446,7 +435,6 @@
             camera.position.z = window.innerWidth < 768 ? 9 : 6; 
         });
 
-        const fadeSpeed = 0.05; 
         const popSpeed = 0.15; 
         let currentlyHoveredFace = null;
 
@@ -458,9 +446,11 @@
             starMesh.rotation.y += (targetStarRotY - starMesh.rotation.y) * 0.05;
             starMesh.rotation.z += 0.0001; 
 
+            const time = Date.now() * 0.003;
+
             if (introScreen.classList.contains('fade-out') && !glassPanel.classList.contains('active')) {
                 raycaster.setFromCamera(mouse, camera);
-                const intersects = raycaster.intersectObjects(cubeGroup.children);
+                const intersects = raycaster.intersectObjects(planeMeshes);
 
                 if (intersects.length > 0) {
                     currentlyHoveredFace = intersects[0].object.userData.index;
@@ -471,17 +461,31 @@
                 currentlyHoveredFace = null;
             }
 
+            // NEW: Define the base and hovered shader targets depending on the global theme
+            const baseInvertValue = isDarkMode ? 0.0 : 1.0;
+            const hoverInvertValue = isDarkMode ? 1.0 : 0.0;
+
             planeMeshes.forEach((mesh) => {
+                const pulseAmount = (Math.sin(time + mesh.userData.index * 0.5) + 1.0) * 0.04;
+                
+                const dynamicBasePos = mesh.userData.basePos.clone().add(
+                    mesh.userData.basePos.clone().normalize().multiplyScalar(pulseAmount)
+                );
+
+                // Check if this specific face is being hovered
+                let currentTargetInvert;
+
                 if (mesh.userData.index === currentlyHoveredFace) {
-                    mesh.material.opacity = Math.max(0.6, mesh.material.opacity - fadeSpeed);
                     mesh.position.lerp(mesh.userData.hoverPos, popSpeed);
+                    currentTargetInvert = hoverInvertValue; // Switch to inverted
                 } else {
-                    mesh.material.opacity = Math.min(1.0, mesh.material.opacity + fadeSpeed);
-                    mesh.position.lerp(mesh.userData.basePos, popSpeed);
+                    mesh.position.lerp(dynamicBasePos, popSpeed);
+                    currentTargetInvert = baseInvertValue; // Stay normal
                 }
 
+                // Animate this face's shader independently
                 if(mesh.material.userData.uInvert) {
-                    mesh.material.userData.uInvert.value += (targetInvertValue - mesh.material.userData.uInvert.value) * 0.1;
+                    mesh.material.userData.uInvert.value += (currentTargetInvert - mesh.material.userData.uInvert.value) * 0.1;
                 }
             });
 
