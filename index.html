@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Adam | Interactive Portfolio</title>
     <style>
+        /* --- CUSTOM FONT SETUP --- */
+        @font-face {
+            font-family: 'AdamCustomFont';
+            src: url('YourFontFile.woff2') format('woff2'); /* CHANGE THIS LINE to your exact font file name */
+            font-weight: normal;
+            font-style: normal;
+        }
+
         /* --- THEME VARIABLES --- */
         :root {
             --bg-color: #000000;
@@ -19,7 +27,6 @@
             --helper-text: #aaaaaa;
         }
 
-        /* When the 'light-mode' class is active, these colors take over */
         body.light-mode {
             --bg-color: #f4f4f5;
             --text-color: #111827;
@@ -34,9 +41,8 @@
         }
 
         /* Base Styles */
-        body { margin: 0; overflow: hidden; background-color: var(--bg-color); color: var(--text-color); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background-color 0.5s ease, color 0.5s ease; }
+        body { margin: 0; overflow: hidden; background-color: var(--bg-color); color: var(--text-color); font-family: 'AdamCustomFont', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background-color 0.5s ease, color 0.5s ease; }
         
-        /* Theme Toggle Button */
         #theme-toggle {
             position: absolute; top: 20px; left: 20px; z-index: 60;
             background: rgba(128, 128, 128, 0.2); border: 1px solid var(--modal-border); color: var(--text-color);
@@ -52,10 +58,7 @@
             z-index: 100; transition: opacity 1s ease-in-out, visibility 1s, background-color 0.5s ease;
         }
 
-        #intro-video {
-            width: 80%; max-width: 600px; /* Adjust this to fit your webm aspect ratio */
-            pointer-events: none;
-        }
+        #intro-video { width: 80%; max-width: 600px; pointer-events: none; }
 
         .music-text { font-size: 1.2rem; color: var(--text-color); opacity: 0; animation: fadeIn 0.5s ease-in 1.5s forwards; margin-top: 15px;}
         @keyframes fadeIn { to { opacity: 1; } }
@@ -70,7 +73,7 @@
         #enter-btn:hover { background-color: var(--btn-hover-bg); color: var(--btn-hover-text); }
         .fade-out { opacity: 0; visibility: hidden; }
 
-        #helper-text { position: absolute; bottom: 20px; width: 100%; text-align: center; pointer-events: none; color: var(--helper-text); z-index: 10; font-family: 'Segoe UI', sans-serif;}
+        #helper-text { position: absolute; bottom: 20px; width: 100%; text-align: center; pointer-events: none; color: var(--helper-text); z-index: 10; font-family: 'AdamCustomFont', sans-serif;}
 
         #modal-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -158,13 +161,12 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        const geometry = new THREE.BoxGeometry(2, 2, 2);
-
-        // --- THEME SWAPPING LOGIC ---
+        // --- UPDATED WEBM VIDEO & SHADER LOGIC ---
         const htmlVideoElements = []; 
-        const darkVideos = ['app_dev.mp4', 'design.mp4', 'video_editing.mp4', 'game_dev.mp4', 'web_dev.mp4', 'contact.mp4'];
-        const lightVideos = ['app_dev_light.mp4', 'design_light.mp4', 'video_editing_light.mp4', 'game_dev_light.mp4', 'web_dev_light.mp4', 'contact_light.mp4'];
+        const coreVideos = ['app_dev.webm', 'design.webm', 'video_editing.webm', 'game_dev.webm', 'web_dev.webm', 'contact.webm'];
+        
         let isDarkMode = true;
+        let targetInvertValue = 0.0; 
 
         function createVideoMaterial(videoFilename) {
             const video = document.createElement('video');
@@ -172,6 +174,7 @@
             video.loop = true;
             video.muted = true;
             video.setAttribute('playsinline', ''); 
+            video.preload = 'auto'; // Forces browser buffer for smoother playback
             
             htmlVideoElements.push(video);
 
@@ -179,19 +182,65 @@
             videoTexture.minFilter = THREE.LinearFilter;
             videoTexture.magFilter = THREE.LinearFilter;
 
-            return new THREE.MeshBasicMaterial({ 
+            const material = new THREE.MeshBasicMaterial({ 
                 map: videoTexture,
                 transparent: true, 
-                opacity: 1.0       
+                opacity: 1.0,
+                side: THREE.DoubleSide 
             });
+
+            material.userData.uInvert = { value: 0.0 };
+            
+            material.onBeforeCompile = (shader) => {
+                shader.uniforms.uInvert = material.userData.uInvert;
+                shader.fragmentShader = `
+                    uniform float uInvert;
+                    ${shader.fragmentShader}
+                `.replace(
+                    '#include <map_fragment>',
+                    `#include <map_fragment>
+                    diffuseColor.rgb = mix(diffuseColor.rgb, 1.0 - diffuseColor.rgb, uInvert);
+                    `
+                );
+            };
+
+            return material;
         }
 
-        // Initialize with Dark Videos
-        const materials = darkVideos.map(vid => createVideoMaterial(vid));
+        const materials = coreVideos.map(vid => createVideoMaterial(vid));
         
-        const cube = new THREE.Mesh(geometry, materials);
-        scene.add(cube);
-        camera.position.z = 5;
+        // --- 3D EXPLODING CUBE LOGIC ---
+        const cubeGroup = new THREE.Group();
+        const planeGeometry = new THREE.PlaneGeometry(2, 2);
+        const planeMeshes = [];
+
+        const planesData = [
+            { pos: [1, 0, 0], rot: [0, Math.PI / 2, 0] },     
+            { pos: [-1, 0, 0], rot: [0, -Math.PI / 2, 0] },   
+            { pos: [0, 1, 0], rot: [-Math.PI / 2, 0, 0] },    
+            { pos: [0, -1, 0], rot: [Math.PI / 2, 0, 0] },    
+            { pos: [0, 0, 1], rot: [0, 0, 0] },               
+            { pos: [0, 0, -1], rot: [0, Math.PI, 0] }         
+        ];
+
+        planesData.forEach((data, index) => {
+            const mesh = new THREE.Mesh(planeGeometry, materials[index]);
+            mesh.position.set(...data.pos);
+            mesh.rotation.set(...data.rot);
+            
+            mesh.userData = { 
+                index: index, 
+                basePos: new THREE.Vector3(...data.pos),
+                hoverPos: new THREE.Vector3(...data.pos).multiplyScalar(1.25) 
+            };
+            
+            cubeGroup.add(mesh);
+            planeMeshes.push(mesh);
+        });
+
+        scene.add(cubeGroup);
+        
+        camera.position.z = window.innerWidth < 768 ? 9 : 6; 
 
         // --- INTERACTIVE SPACE STARS LOGIC ---
         const starGeometry = new THREE.BufferGeometry();
@@ -207,34 +256,22 @@
         const starMesh = new THREE.Points(starGeometry, starMaterial);
         scene.add(starMesh);
 
-        // --- THEME TOGGLE EVENT LISTENER ---
         const themeToggle = document.getElementById('theme-toggle');
         themeToggle.addEventListener('click', () => {
             isDarkMode = !isDarkMode;
-            
-            // 1. Toggle CSS classes
             document.body.classList.toggle('light-mode');
             themeToggle.innerText = isDarkMode ? "☀️ Light Mode" : "🌙 Dark Mode";
-
-            // 2. Invert 3D environment colors (Fog and Stars)
             scene.fog.color.setHex(isDarkMode ? 0x000000 : 0xf4f4f5);
             starMaterial.color.setHex(isDarkMode ? 0xffffff : 0x000000);
 
-            // 3. Swap Video Textures dynamically
-            const targetVideos = isDarkMode ? darkVideos : lightVideos;
-            htmlVideoElements.forEach((vid, index) => {
-                const wasPlaying = !vid.paused; 
-                vid.src = targetVideos[index];
-                vid.load(); 
-                if (wasPlaying) vid.play(); 
-            });
+            targetInvertValue = isDarkMode ? 0.0 : 1.0;
         });
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.enableZoom = false; 
+        controls.enablePan = false; 
 
-        // --- INTRO SCREEN LOGIC ---
         const enterBtn = document.getElementById('enter-btn');
         const introScreen = document.getElementById('intro-screen');
 
@@ -243,7 +280,6 @@
             introScreen.classList.add('fade-out');
         });
 
-        // --- INTERACTION LOGIC ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         
@@ -252,14 +288,9 @@
         const modalBody = document.getElementById('modal-body');
         const closeBtn = document.getElementById('close-btn');
 
-        function closeModal() {
-            modalOverlay.classList.remove('active');
-        }
-
+        function closeModal() { modalOverlay.classList.remove('active'); }
         closeBtn.addEventListener('click', closeModal);
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay) closeModal();
-        });
+        modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
 
         let pointerDownPos = new THREE.Vector2();
         window.addEventListener('pointerdown', (event) => {
@@ -277,11 +308,10 @@
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObject(cube);
+            const intersects = raycaster.intersectObjects(cubeGroup.children);
 
             if (intersects.length > 0) {
-                const faceIndex = Math.floor(intersects[0].faceIndex / 2);
-                
+                const faceIndex = intersects[0].object.userData.index;
                 modalTitle.innerText = portfolioData[faceIndex].title;
                 modalBody.innerHTML = portfolioData[faceIndex].content;
                 modalOverlay.classList.add('active');
@@ -294,7 +324,6 @@
         window.addEventListener('mousemove', (event) => {
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
             targetStarRotY = mouse.x * 0.2; 
             targetStarRotX = mouse.y * 0.2; 
         });
@@ -303,9 +332,11 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.position.z = window.innerWidth < 768 ? 9 : 6; 
         });
 
         const fadeSpeed = 0.05; 
+        const popSpeed = 0.15; 
         let currentlyHoveredFace = null;
 
         // --- ANIMATION LOOP ---
@@ -319,11 +350,10 @@
 
             if (introScreen.classList.contains('fade-out') && !modalOverlay.classList.contains('active')) {
                 raycaster.setFromCamera(mouse, camera);
-                const intersects = raycaster.intersectObject(cube);
+                const intersects = raycaster.intersectObjects(cubeGroup.children);
 
                 if (intersects.length > 0) {
-                    const faceIndex = Math.floor(intersects[0].faceIndex / 2);
-                    currentlyHoveredFace = faceIndex;
+                    currentlyHoveredFace = intersects[0].object.userData.index;
                 } else {
                     currentlyHoveredFace = null;
                 }
@@ -331,11 +361,18 @@
                 currentlyHoveredFace = null;
             }
 
-            materials.forEach((material, index) => {
-                if (index === currentlyHoveredFace) {
-                    material.opacity = Math.max(0.6, material.opacity - fadeSpeed);
+            // --- ANIMATE THE PLANES & SHADERS ---
+            planeMeshes.forEach((mesh) => {
+                if (mesh.userData.index === currentlyHoveredFace) {
+                    mesh.material.opacity = Math.max(0.6, mesh.material.opacity - fadeSpeed);
+                    mesh.position.lerp(mesh.userData.hoverPos, popSpeed);
                 } else {
-                    material.opacity = Math.min(1.0, material.opacity + fadeSpeed);
+                    mesh.material.opacity = Math.min(1.0, mesh.material.opacity + fadeSpeed);
+                    mesh.position.lerp(mesh.userData.basePos, popSpeed);
+                }
+
+                if(mesh.material.userData.uInvert) {
+                    mesh.material.userData.uInvert.value += (targetInvertValue - mesh.material.userData.uInvert.value) * 0.1;
                 }
             });
 
